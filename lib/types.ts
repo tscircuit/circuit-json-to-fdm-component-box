@@ -25,12 +25,28 @@ export interface FdmComponentBoxOptions {
   minimumLabelStrokeWidth?: number
   /** Include source components that do not have a pcb_component record. */
   includeUnplacedComponents?: boolean
+  /** Include test points, which are excluded from assembly compartments by default. */
+  includeTestPoints?: boolean
+  /** Group confidently identical BOM parts into one compartment. Defaults to true. */
+  groupByComponent?: boolean
   /** Core 3MF display color for the box material, as #RRGGBB or #RRGGBBAA. */
   boxColor?: string
   /** Core 3MF display color for the label material, as #RRGGBB or #RRGGBBAA. */
   labelColor?: string
   /** Title stored in the 3MF model metadata. */
   title?: string
+}
+
+export interface ComponentGroup {
+  /** Stable description of the BOM identity used for this group. */
+  componentKey: string
+  /** Every refdes whose physical parts belong in this compartment. */
+  referenceDesignators: string[]
+  quantity: number
+  componentType?: string
+  manufacturerPartNumber?: string
+  supplierPartNumbers?: Record<string, string[]>
+  footprint?: string
 }
 
 export interface FdmComponentBoxDimensions {
@@ -45,7 +61,14 @@ export interface FdmComponentBoxDimensions {
 }
 
 export interface CompartmentPlacement {
+  /** Primary refdes, retained for compatibility with one-component compartments. */
   refdes: string
+  /** All refdes values assigned to this compartment. */
+  referenceDesignators: string[]
+  /** Text physically embossed above the compartment. */
+  label: string
+  componentKey: string
+  quantity: number
   row: number
   column: number
   /** Cavity center in the box coordinate frame, in millimetres. */
@@ -65,8 +88,10 @@ export interface FdmComponentBoxMeshStats {
 export interface FdmComponentBoxResult {
   /** Ready-to-write 3MF package bytes. */
   threeMf: Uint8Array
-  /** Naturally sorted refdes values represented by the compartments. */
+  /** Naturally sorted refdes values represented by all compartments. */
   componentRefdes: string[]
+  /** BOM-aware groups, one per generated compartment. */
+  componentGroups: ComponentGroup[]
   dimensions: FdmComponentBoxDimensions
   compartments: CompartmentPlacement[]
   meshStats: FdmComponentBoxMeshStats
@@ -84,6 +109,8 @@ export interface ResolvedFdmComponentBoxOptions {
   labelPadding: number
   minimumLabelStrokeWidth: number
   includeUnplacedComponents: boolean
+  includeTestPoints: boolean
+  groupByComponent: boolean
   boxColor: string
   labelColor: string
   title: string
@@ -100,6 +127,8 @@ export const DEFAULT_FDM_COMPONENT_BOX_OPTIONS = {
   labelPadding: 0.75,
   minimumLabelStrokeWidth: 0.45,
   includeUnplacedComponents: false,
+  includeTestPoints: false,
+  groupByComponent: true,
   boxColor: "#D9D9D9FF",
   labelColor: "#151515FF",
 } as const

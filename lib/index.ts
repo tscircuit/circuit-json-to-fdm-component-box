@@ -1,3 +1,5 @@
 export * from "./create-fdm-component-box"
+export * from "./extract-component-groups"
 export * from "./extract-component-refdes"
+export * from "./render-fdm-component-box-png"
 export * from "./types"

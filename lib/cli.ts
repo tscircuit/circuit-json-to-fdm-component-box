@@ -23,6 +23,8 @@ Options:
   --label-color <#RRGGBB[AA]>
   --title <text>
   --include-unplaced
+  --include-test-points
+  --no-group-components
   --help
 `
 
@@ -52,6 +54,14 @@ const parseOptions = (args: string[]): FdmComponentBoxOptions => {
     const flag = args[index]!
     if (flag === "--include-unplaced") {
       options.includeUnplacedComponents = true
+      continue
+    }
+    if (flag === "--include-test-points") {
+      options.includeTestPoints = true
+      continue
+    }
+    if (flag === "--no-group-components") {
+      options.groupByComponent = false
       continue
     }
 
@@ -101,7 +111,7 @@ const main = async (): Promise<void> => {
   await writeFile(outputPath, result.threeMf)
 
   console.log(
-    `Wrote ${outputPath}: ${result.componentRefdes.length} compartments, ${result.dimensions.width.toFixed(1)} × ${result.dimensions.depth.toFixed(1)} × ${result.dimensions.height.toFixed(1)} mm`,
+    `Wrote ${outputPath}: ${result.componentRefdes.length} components in ${result.compartments.length} compartments, ${result.dimensions.width.toFixed(1)} × ${result.dimensions.depth.toFixed(1)} × ${result.dimensions.height.toFixed(1)} mm`,
   )
 }
 

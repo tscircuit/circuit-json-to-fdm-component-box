@@ -1,7 +1,10 @@
 import { describe, expect, test } from "bun:test"
 import { strFromU8, unzipSync } from "fflate"
 import { createFdmComponentBox } from "lib/create-fdm-component-box"
-import { sampleCircuitJson } from "tests/fixtures/sample-circuit"
+import {
+  groupedCircuitJson,
+  sampleCircuitJson,
+} from "tests/fixtures/sample-circuit"
 
 const getModelXml = (threeMf: Uint8Array): string => {
   const files = unzipSync(threeMf)
@@ -43,6 +46,7 @@ describe("createFdmComponentBox", () => {
       "_rels/.rels",
     ])
     expect(result.componentRefdes).toEqual(["C1", "R1", "R10", "U2"])
+    expect(result.componentGroups).toHaveLength(4)
     expect(result.dimensions).toMatchObject({
       depth: 61.8,
       height: 13.6,
@@ -84,6 +88,31 @@ describe("createFdmComponentBox", () => {
         `<metadata key="name" value="Label ${refdes}"/>`,
       )
     }
+  })
+
+  test("uses one labeled compartment for identical BOM parts", async () => {
+    const result = await createFdmComponentBox(groupedCircuitJson)
+
+    expect(result.componentRefdes).toEqual(["C1", "C2", "R1", "R2", "U1"])
+    expect(result.compartments).toHaveLength(3)
+    expect(result.compartments[0]).toMatchObject({
+      refdes: "C1",
+      referenceDesignators: ["C1", "C2"],
+      label: "C1,C2",
+      quantity: 2,
+    })
+    expect(result.compartments[1]).toMatchObject({
+      referenceDesignators: ["R1", "R2"],
+      quantity: 2,
+    })
+
+    const model = getModelXml(result.threeMf)
+    expect(model).toContain('name="Label C1,C2" pid="1" pindex="1"')
+
+    const ungrouped = await createFdmComponentBox(groupedCircuitJson, {
+      groupByComponent: false,
+    })
+    expect(ungrouped.compartments).toHaveLength(5)
   })
 
   test("places label geometry directly on top of the box material", async () => {

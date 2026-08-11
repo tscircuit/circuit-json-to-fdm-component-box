@@ -127,7 +127,11 @@ export const createPrintableMeshes = async (
       }
 
       labelMeshes.push(
-        copyMesh(label.getMesh(), `Label ${compartment.refdes}`, 1),
+        copyMesh(
+          label.getMesh(),
+          `Label ${compartment.referenceDesignators.join(",")}`,
+          1,
+        ),
       )
     }
 
