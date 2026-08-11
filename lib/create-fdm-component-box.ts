@@ -1,7 +1,5 @@
 import type { CircuitJson } from "circuit-json"
-import { createPrintableMeshes } from "./manifold-meshes"
-import { extractComponentRefdes } from "./extract-component-refdes"
-import { resolveFdmComponentBoxOptions } from "./resolve-options"
+import { buildFdmComponentBox } from "./build-fdm-component-box"
 import { createThreeMf } from "./create-three-mf"
 import type { FdmComponentBoxOptions, FdmComponentBoxResult } from "./types"
 
@@ -9,32 +7,25 @@ export const createFdmComponentBox = async (
   circuitJson: CircuitJson,
   options: FdmComponentBoxOptions = {},
 ): Promise<FdmComponentBoxResult> => {
-  const componentRefdes = extractComponentRefdes(circuitJson, {
-    includeUnplacedComponents: options.includeUnplacedComponents,
-  })
-  const resolved = resolveFdmComponentBoxOptions(componentRefdes, options)
-  const meshes = await createPrintableMeshes(
-    resolved.options,
-    resolved.dimensions,
-    resolved.compartments,
-  )
-  const boxTriangles = meshes.box.triangles.length / 3
-  const labelTriangles = meshes.labels.reduce(
+  const built = await buildFdmComponentBox(circuitJson, options)
+  const boxTriangles = built.meshes.box.triangles.length / 3
+  const labelTriangles = built.meshes.labels.reduce(
     (sum, mesh) => sum + mesh.triangles.length / 3,
     0,
   )
 
   return {
     threeMf: createThreeMf({
-      box: meshes.box,
-      labels: meshes.labels,
-      boxColor: resolved.options.boxColor,
-      labelColor: resolved.options.labelColor,
-      title: resolved.options.title,
+      box: built.meshes.box,
+      labels: built.meshes.labels,
+      boxColor: built.options.boxColor,
+      labelColor: built.options.labelColor,
+      title: built.options.title,
     }),
-    componentRefdes,
-    dimensions: resolved.dimensions,
-    compartments: resolved.compartments,
+    componentRefdes: built.componentRefdes,
+    componentGroups: built.componentGroups,
+    dimensions: built.dimensions,
+    compartments: built.compartments,
     meshStats: {
       boxTriangles,
       labelTriangles,

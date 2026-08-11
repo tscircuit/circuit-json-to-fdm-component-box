@@ -1,10 +1,12 @@
 import {
   DEFAULT_FDM_COMPONENT_BOX_OPTIONS,
+  type ComponentGroup,
   type CompartmentPlacement,
   type FdmComponentBoxDimensions,
   type FdmComponentBoxOptions,
   type ResolvedFdmComponentBoxOptions,
 } from "./types"
+import { formatComponentGroupLabel } from "./format-component-group-label"
 
 const assertPositive = (value: number, name: string): number => {
   if (!Number.isFinite(value) || value <= 0) {
@@ -21,24 +23,24 @@ const normalizeColor = (value: string, name: string): string => {
 }
 
 export const resolveFdmComponentBoxOptions = (
-  componentRefdes: readonly string[],
+  componentGroups: readonly ComponentGroup[],
   options: FdmComponentBoxOptions,
 ): {
   options: ResolvedFdmComponentBoxOptions
   dimensions: FdmComponentBoxDimensions
   compartments: CompartmentPlacement[]
 } => {
-  if (componentRefdes.length === 0) {
+  if (componentGroups.length === 0) {
     throw new Error("At least one component is required")
   }
 
   const requestedColumns =
-    options.columns ?? Math.ceil(Math.sqrt(componentRefdes.length))
+    options.columns ?? Math.ceil(Math.sqrt(componentGroups.length))
   if (!Number.isInteger(requestedColumns) || requestedColumns <= 0) {
     throw new RangeError("columns must be a positive integer")
   }
 
-  const columns = Math.min(requestedColumns, componentRefdes.length)
+  const columns = Math.min(requestedColumns, componentGroups.length)
   const compartmentWidth = assertPositive(
     options.compartmentWidth ??
       DEFAULT_FDM_COMPONENT_BOX_OPTIONS.compartmentWidth,
@@ -87,7 +89,7 @@ export const resolveFdmComponentBoxOptions = (
     throw new RangeError("labelPadding leaves no vertical room for text")
   }
 
-  const rows = Math.ceil(componentRefdes.length / columns)
+  const rows = Math.ceil(componentGroups.length / columns)
   const rowInnerDepth = compartmentDepth + labelBandDepth
   const rowPitch = rowInnerDepth + wallThickness
   const dimensions = {
@@ -98,7 +100,7 @@ export const resolveFdmComponentBoxOptions = (
     rows,
   }
 
-  const compartments = componentRefdes.map((refdes, index) => {
+  const compartments = componentGroups.map((group, index) => {
     const row = Math.floor(index / columns)
     const column = index % columns
     const rowY = row * rowPitch
@@ -107,7 +109,15 @@ export const resolveFdmComponentBoxOptions = (
     const labelY = cavityY + compartmentDepth
 
     return {
-      refdes,
+      refdes: group.referenceDesignators[0]!,
+      referenceDesignators: [...group.referenceDesignators],
+      label: formatComponentGroupLabel(group.referenceDesignators, {
+        availableWidth: compartmentWidth - labelPadding * 2,
+        availableHeight: labelBandDepth - labelPadding * 2,
+        minimumStrokeWidth: minimumLabelStrokeWidth,
+      }),
+      componentKey: group.componentKey,
+      quantity: group.quantity,
       row,
       column,
       center: {
@@ -122,6 +132,14 @@ export const resolveFdmComponentBoxOptions = (
       depth: compartmentDepth,
     }
   })
+  const duplicateLabel = compartments
+    .map(({ label }) => label)
+    .find((label, index, labels) => labels.indexOf(label) !== index)
+  if (duplicateLabel) {
+    throw new Error(
+      `Compartment label ${JSON.stringify(duplicateLabel)} is ambiguous after abbreviation; increase compartmentWidth or labelBandDepth`,
+    )
+  }
 
   return {
     options: {
@@ -138,6 +156,12 @@ export const resolveFdmComponentBoxOptions = (
       includeUnplacedComponents:
         options.includeUnplacedComponents ??
         DEFAULT_FDM_COMPONENT_BOX_OPTIONS.includeUnplacedComponents,
+      includeTestPoints:
+        options.includeTestPoints ??
+        DEFAULT_FDM_COMPONENT_BOX_OPTIONS.includeTestPoints,
+      groupByComponent:
+        options.groupByComponent ??
+        DEFAULT_FDM_COMPONENT_BOX_OPTIONS.groupByComponent,
       boxColor: normalizeColor(
         options.boxColor ?? DEFAULT_FDM_COMPONENT_BOX_OPTIONS.boxColor,
         "boxColor",
@@ -148,7 +172,15 @@ export const resolveFdmComponentBoxOptions = (
       ),
       title:
         options.title?.trim() ||
-        `Assembly box for ${componentRefdes.length} components`,
+        (() => {
+          const componentCount = componentGroups.reduce(
+            (sum, group) => sum + group.quantity,
+            0,
+          )
+          return componentCount === componentGroups.length
+            ? `Assembly box for ${componentCount} components`
+            : `Assembly box for ${componentCount} components in ${componentGroups.length} compartments`
+        })(),
     },
     dimensions,
     compartments,

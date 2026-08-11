@@ -1,83 +1,9 @@
-import outlinePolygons from "@tscircuit/alphabet/outline-polygons"
-import {
-  glyphAdvanceRatio,
-  kerningRatio,
-  spaceWidthRatio,
-  textMetrics,
-} from "@tscircuit/alphabet"
 import type { Manifold, ManifoldToplevel, Polygons } from "manifold-3d"
+import { getScaledLabelMetrics } from "./label-text"
 import type {
   CompartmentPlacement,
   ResolvedFdmComponentBoxOptions,
 } from "./types"
-
-interface Point {
-  x: number
-  y: number
-}
-
-const pointsMatch = (a: Point, b: Point): boolean =>
-  Math.abs(a.x - b.x) < 1e-12 && Math.abs(a.y - b.y) < 1e-12
-
-const getTextContours = (text: string): Point[][] => {
-  const contours: Point[][] = []
-  let cursorX = 0
-  let previousCharacter: string | undefined
-
-  for (const character of text) {
-    if (character === " ") {
-      cursorX += spaceWidthRatio
-      previousCharacter = character
-      continue
-    }
-
-    const glyph = outlinePolygons[character]
-    if (!glyph) {
-      throw new Error(
-        `Refdes ${JSON.stringify(text)} contains unsupported label character ${JSON.stringify(character)}`,
-      )
-    }
-
-    cursorX += previousCharacter
-      ? (kerningRatio[previousCharacter]?.[character] ?? 0)
-      : 0
-
-    for (const ring of glyph) {
-      const unclosedRing =
-        ring.length > 1 && pointsMatch(ring[0]!, ring[ring.length - 1]!)
-          ? ring.slice(0, -1)
-          : ring
-      contours.push(unclosedRing.map(({ x, y }) => ({ x: x + cursorX, y })))
-    }
-
-    cursorX += glyphAdvanceRatio[character] ?? spaceWidthRatio
-    previousCharacter = character
-  }
-
-  if (contours.length === 0) {
-    throw new Error(`Refdes ${JSON.stringify(text)} has no printable glyphs`)
-  }
-
-  return contours
-}
-
-const getBounds = (contours: readonly Point[][]) => {
-  let minX = Number.POSITIVE_INFINITY
-  let minY = Number.POSITIVE_INFINITY
-  let maxX = Number.NEGATIVE_INFINITY
-  let maxY = Number.NEGATIVE_INFINITY
-
-  for (const ring of contours) {
-    for (const point of ring) {
-      minX = Math.min(minX, point.x)
-      minY = Math.min(minY, point.y)
-      maxX = Math.max(maxX, point.x)
-      maxY = Math.max(maxY, point.y)
-    }
-  }
-
-  return { minX, minY, maxX, maxY }
-}
 
 /**
  * Builds a raised vector label in the box coordinate frame (millimetres,
@@ -90,18 +16,14 @@ export const createLabelManifold = (
   options: ResolvedFdmComponentBoxOptions,
   boxHeight: number,
 ): Manifold => {
-  const contours = getTextContours(placement.refdes)
-  const bounds = getBounds(contours)
-  const rawWidth = bounds.maxX - bounds.minX
-  const rawHeight = bounds.maxY - bounds.minY
   const availableWidth = options.compartmentWidth - options.labelPadding * 2
   const availableHeight = options.labelBandDepth - options.labelPadding * 2
-  const scale = Math.min(availableWidth / rawWidth, availableHeight / rawHeight)
-  const strokeWidth = textMetrics.strokeWidthRatio * scale
+  const { contours, bounds, rawWidth, rawHeight, scale, strokeWidth } =
+    getScaledLabelMetrics(placement.label, availableWidth, availableHeight)
 
   if (strokeWidth < options.minimumLabelStrokeWidth) {
     throw new Error(
-      `Refdes ${JSON.stringify(placement.refdes)} needs a ${strokeWidth.toFixed(3)}mm text stroke, below minimumLabelStrokeWidth ${options.minimumLabelStrokeWidth}mm; increase compartmentWidth or labelBandDepth`,
+      `Label ${JSON.stringify(placement.label)} needs a ${strokeWidth.toFixed(3)}mm text stroke, below minimumLabelStrokeWidth ${options.minimumLabelStrokeWidth}mm; increase compartmentWidth or labelBandDepth`,
     )
   }
 

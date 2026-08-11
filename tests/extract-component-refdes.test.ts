@@ -21,6 +21,12 @@ describe("extractComponentRefdes", () => {
       extractComponentRefdes(sampleCircuitJson, {
         includeUnplacedComponents: true,
       }),
+    ).toEqual(["C1", "R1", "R10", "U2"])
+    expect(
+      extractComponentRefdes(sampleCircuitJson, {
+        includeUnplacedComponents: true,
+        includeTestPoints: true,
+      }),
     ).toEqual(["C1", "R1", "R10", "TP1", "U2"])
   })
 
@@ -37,7 +43,7 @@ describe("extractComponentRefdes", () => {
       extractComponentRefdes(circuitJson, {
         includeUnplacedComponents: true,
       }),
-    ).toEqual(["C1", "R1", "R10", "TP1", "U2"])
+    ).toEqual(["C1", "R1", "R10", "U2"])
   })
 
   test("falls back to source components when PCB records are absent", () => {
@@ -45,7 +51,6 @@ describe("extractComponentRefdes", () => {
       "C1",
       "R1",
       "R10",
-      "TP1",
       "U2",
     ])
   })

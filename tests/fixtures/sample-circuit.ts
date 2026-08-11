@@ -56,3 +56,50 @@ export const sampleCircuitJson = [
 export const sourceOnlyCircuitJson = sampleCircuitJson.filter(
   (element) => element.type === "source_component",
 ) as CircuitJson
+
+export const groupedCircuitJson = [
+  {
+    type: "source_component",
+    source_component_id: "source_c1",
+    name: "C1",
+    ftype: "simple_capacitor",
+    capacitance: 1e-7,
+    supplier_part_numbers: { jlcpcb: ["C1525"] },
+  },
+  {
+    type: "source_component",
+    source_component_id: "source_c2",
+    name: "C2",
+    ftype: "simple_capacitor",
+    capacitance: 1e-7,
+    supplier_part_numbers: { jlcpcb: ["C1525"] },
+  },
+  {
+    type: "source_component",
+    source_component_id: "source_r1",
+    name: "R1",
+    ftype: "simple_resistor",
+    resistance: 10_000,
+    manufacturer_part_number: "RC0402FR-0710KL",
+  },
+  {
+    type: "source_component",
+    source_component_id: "source_r2",
+    name: "R2",
+    ftype: "simple_resistor",
+    resistance: 10_000,
+    manufacturer_part_number: "RC0402FR-0710KL",
+  },
+  {
+    type: "source_component",
+    source_component_id: "source_u1",
+    name: "U1",
+    ftype: "simple_chip",
+    manufacturer_part_number: "RP2040",
+  },
+  ...["c1", "c2", "r1", "r2", "u1"].map((suffix) => ({
+    type: "pcb_component",
+    pcb_component_id: `pcb_${suffix}`,
+    source_component_id: `source_${suffix}`,
+  })),
+] as unknown as CircuitJson
