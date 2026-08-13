@@ -1,6 +1,6 @@
 {
   "name": "circuit-json-to-fdm-component-box",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Generate multi-material 3MF component-organization boxes from Circuit JSON",
   "module": "dist/index.js",
   "main": "dist/index.js",
