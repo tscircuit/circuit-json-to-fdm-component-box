@@ -1,5 +1,8 @@
 # circuit-json-to-fdm-component-box
 
+[Open the web converter](https://circuit-json-to-fdm-component-box.vercel.app/) to
+upload Circuit JSON, preview the generated component box, and download a 3MF.
+
 Generate a labeled component-organization tray from Circuit JSON as a
 multi-material 3MF file. Each populated PCB component is assigned to an open
 compartment, and its refdes (`R1`, `C1`, `U1`, and so on) is raised on the solid
