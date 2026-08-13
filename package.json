@@ -14,6 +14,7 @@
   },
   "scripts": {
     "build": "tsup-node lib/index.ts lib/cli.ts --format esm --dts --sourcemap",
+    "build:site": "bun build ./site/index.html --outdir site-build",
     "format": "biome format --write .",
     "format:check": "biome format .",
     "snapshot": "bun test tests/component-box-preview.test.ts",
