@@ -1,9 +1,6 @@
-import ManifoldModule, {
-  type Manifold,
-  type ManifoldToplevel,
-  type Mesh,
-} from "manifold-3d"
+import type { Manifold, Mesh } from "manifold-3d"
 import { createLabelManifold } from "./create-label-manifold"
+import { getManifoldModule } from "./get-manifold-module"
 import type {
   CompartmentPlacement,
   FdmComponentBoxDimensions,
@@ -15,16 +12,6 @@ export interface PrintableMesh {
   vertices: Float32Array
   triangles: Uint32Array
   materialIndex: number
-}
-
-let manifoldModulePromise: Promise<ManifoldToplevel> | undefined
-
-const getManifoldModule = async (): Promise<ManifoldToplevel> => {
-  manifoldModulePromise ??= ManifoldModule().then((module) => {
-    module.setup()
-    return module
-  })
-  return manifoldModulePromise
 }
 
 const copyMesh = (
