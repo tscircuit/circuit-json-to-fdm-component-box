@@ -3,24 +3,54 @@ import { getScaledLabelMetrics } from "./label-text"
 const compactNumericRange = (refdes: readonly string[]): string | undefined => {
   const parsed = refdes.map((value) => {
     const match = /^(.*?)(\d+)$/.exec(value)
-    return match ? { prefix: match[1]!, number: Number(match[2]) } : undefined
+    return match
+      ? { prefix: match[1]!, digits: match[2]!, number: Number(match[2]) }
+      : undefined
   })
   if (parsed.some((value) => !value)) return undefined
-  const values = parsed as Array<{ prefix: string; number: number }>
+  const values = parsed as Array<{
+    prefix: string
+    digits: string
+    number: number
+  }>
   const prefix = values[0]!.prefix
   if (values.some((value) => value.prefix !== prefix)) return undefined
 
-  const ranges: Array<{ start: number; end: number }> = []
-  for (const number of [...new Set(values.map((value) => value.number))].sort(
-    (a, b) => a - b,
-  )) {
+  const digitsByNumber = new Map<number, string>()
+  for (const value of values) {
+    const existingDigits = digitsByNumber.get(value.number)
+    if (existingDigits !== undefined && existingDigits !== value.digits) {
+      return undefined
+    }
+    digitsByNumber.set(value.number, value.digits)
+  }
+
+  const ranges: Array<{
+    start: number
+    end: number
+    startDigits: string
+    endDigits: string
+  }> = []
+  for (const number of [...digitsByNumber.keys()].sort((a, b) => a - b)) {
+    const digits = digitsByNumber.get(number)!
     const previous = ranges[ranges.length - 1]
-    if (previous && number === previous.end + 1) previous.end = number
-    else ranges.push({ start: number, end: number })
+    if (previous && number === previous.end + 1) {
+      previous.end = number
+      previous.endDigits = digits
+    } else {
+      ranges.push({
+        start: number,
+        end: number,
+        startDigits: digits,
+        endDigits: digits,
+      })
+    }
   }
   return ranges
-    .map(({ start, end }) =>
-      start === end ? `${prefix}${start}` : `${prefix}${start}-${end}`,
+    .map(({ start, end, startDigits, endDigits }) =>
+      start === end
+        ? `${prefix}${startDigits}`
+        : `${prefix}${startDigits}-${endDigits}`,
     )
     .join(",")
 }
